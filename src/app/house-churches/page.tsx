@@ -32,7 +32,7 @@ export default function HouseChurchesPage() {
 	return (
 		<div className="w-full">
 			<div className="relative min-h-dvh">
-				<div className="absolute top-0 right-0 left-0 z-20">
+				<div className="absolute top-0 right-0 left-0 z-50">
 					<Navbar overHero />
 				</div>
 				<HouseChurchesHero />

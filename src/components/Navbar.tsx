@@ -14,6 +14,10 @@ const navItems = [
 type NavbarProps = {
 	/** Light text and controls for use over the hero image */
 	overHero?: boolean;
+	/**
+	 * When true (e.g. home), the bar fades in last, after the hero CTA button entrance.
+	 */
+	heroEntrance?: boolean;
 };
 
 const useIsomorphicLayoutEffect = typeof document !== "undefined" ? useLayoutEffect : useEffect;
@@ -36,7 +40,7 @@ function getHomeScrollSegment(): "home" | "where-we-are" {
 	return "home";
 }
 
-export function Navbar({ overHero = false }: NavbarProps) {
+export function Navbar({ overHero = false, heroEntrance = false }: NavbarProps) {
 	const pathname = usePathname();
 	const [homeScrollSegment, setHomeScrollSegment] = useState<"home" | "where-we-are">("home");
 
@@ -146,11 +150,15 @@ export function Navbar({ overHero = false }: NavbarProps) {
 		<>
 			{menuOpen && <div className="h-[4.5rem] w-full md:hidden" aria-hidden />}
 		<header
-			className={`font-marcellus w-full ${menuOpen ? "fixed top-0 right-0 left-0 z-[110] w-full" : "bg-transparent"} ${headerBar}`}
+			className={`font-marcellus pointer-events-auto w-full ${
+				menuOpen
+					? "fixed top-0 right-0 left-0 z-[120] w-full"
+					: "relative z-[100] bg-transparent"
+			} ${headerBar}`}
 		>
 			{menuOpen && (
 				<div
-					className={`fixed inset-0 z-[100] flex min-h-dvh w-full flex-col overflow-y-auto pt-20 ${mobilePanel} md:hidden`}
+					className={`fixed inset-0 z-[110] flex min-h-dvh w-full flex-col overflow-y-auto pt-20 ${mobilePanel} md:hidden`}
 					id="mobile-menu-panel"
 					role="dialog"
 					aria-modal="true"
@@ -160,9 +168,9 @@ export function Navbar({ overHero = false }: NavbarProps) {
 					<div
 						role="region"
 						aria-label="Page links"
-						className="flex min-h-0 flex-1 flex-col items-stretch justify-start gap-1 px-6 pb-10"
+						className="flex min-h-0 flex-1 flex-col items-stretch px-6 pb-10"
 					>
-						<ul className="m-0 flex list-none flex-col items-stretch gap-0 p-0">
+						<ul className="m-0 flex shrink-0 list-none flex-col items-stretch gap-0 p-0">
 							{navItems.map((item) => {
 								const isActive =
 									item.id === "house-churches"
@@ -189,19 +197,27 @@ export function Navbar({ overHero = false }: NavbarProps) {
 								);
 							})}
 						</ul>
-						<Link
-							href="/connect"
-							onClick={() => setMenuOpen(false)}
-							className={`${connectClass} mt-4 inline-flex items-center justify-center self-start text-xl !font-bold sm:px-8 sm:py-3 sm:text-2xl`}
-							aria-current={pathname === "/connect" ? "page" : undefined}
+						<div
+							className={`mt-auto w-full shrink-0 border-t pt-6 ${
+								overHero ? "border-white/20" : "border-zinc-300"
+							}`}
 						>
-							Connect
-						</Link>
+							<Link
+								href="/connect"
+								onClick={() => setMenuOpen(false)}
+								className={`${connectClass} inline-flex items-center justify-center self-start text-xl !font-bold sm:px-8 sm:py-3 sm:text-2xl`}
+								aria-current={pathname === "/connect" ? "page" : undefined}
+							>
+								Connect
+							</Link>
+						</div>
 					</div>
 				</div>
 			)}
 			<nav
-				className="relative z-[110] flex w-full items-center justify-between gap-4 px-5 py-4 sm:px-8 sm:py-5"
+				className={`relative z-[120] flex w-full items-center justify-between gap-4 px-5 py-4 sm:px-8 sm:py-5${
+					heroEntrance ? " hero-fade-in-delay-3" : ""
+				}`}
 				aria-label="Main"
 			>
 				<Link
@@ -242,10 +258,10 @@ export function Navbar({ overHero = false }: NavbarProps) {
 						Connect
 					</Link>
 				</div>
-				<div className="md:hidden">
+				<div className="md:hidden pointer-events-auto">
 					<button
 						type="button"
-						className={`-m-2 inline-flex p-2 ${hamburgerClass}`}
+						className={`-mx-2 inline-flex h-12 min-h-[44px] w-12 min-w-[44px] translate-y-0.5 items-center justify-center p-0 ${hamburgerClass} touch-manipulation cursor-pointer`}
 						onClick={() => setMenuOpen((o) => !o)}
 						aria-expanded={menuOpen}
 						aria-controls="mobile-menu-panel"

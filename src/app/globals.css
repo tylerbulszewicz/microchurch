@@ -32,3 +32,46 @@
 		font-family: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
 	}
 }
+
+/* Home hero: staggered fade-in (also used by Navbar when `heroEntrance` is set). */
+@keyframes hero-fade-in {
+	from {
+		opacity: 0;
+		transform: translate3d(0, 0.5rem, 0);
+	}
+	to {
+		opacity: 1;
+		transform: translate3d(0, 0, 0);
+	}
+}
+
+@layer components {
+	.hero-fade-in {
+		opacity: 0;
+		animation: hero-fade-in 0.75s ease-out 0s forwards;
+	}
+	.hero-fade-in-delay-1 {
+		opacity: 0;
+		animation: hero-fade-in 0.75s ease-out 0.32s forwards;
+	}
+	.hero-fade-in-delay-2 {
+		opacity: 0;
+		animation: hero-fade-in 0.75s ease-out 0.64s forwards;
+	}
+	/* After title (0.64s) + same fade duration (0.75s) — nav starts as the CTA button finishes. */
+	.hero-fade-in-delay-3 {
+		opacity: 0;
+		animation: hero-fade-in 0.75s ease-out 1.4s forwards;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.hero-fade-in,
+		.hero-fade-in-delay-1,
+		.hero-fade-in-delay-2,
+		.hero-fade-in-delay-3 {
+			animation: none;
+			opacity: 1;
+			transform: none;
+		}
+	}
+}

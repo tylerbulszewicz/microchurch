@@ -28,8 +28,8 @@ export default function Home() {
 		<div className="w-full">
 			<HashScroll />
 			<div className="relative min-h-dvh">
-				<div className="absolute top-0 right-0 left-0 z-20">
-					<Navbar overHero />
+				<div className="absolute top-0 right-0 left-0 z-50">
+					<Navbar overHero heroEntrance />
 				</div>
 				<HomeHero />
 			</div>
