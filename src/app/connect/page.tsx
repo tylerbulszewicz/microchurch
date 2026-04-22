@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { ConnectForm } from "@/components/ConnectForm";
 import { Navbar } from "@/components/Navbar";
 import { siteUrl } from "@/lib/site";
 import charlotteImage from "../../../public/images/charlottecity.webp";
 import Image from "next/image";
+
+export const dynamic = "force-dynamic";
 
 const connectTitle = "Connect with us";
 const connectDescription =
@@ -29,7 +32,26 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function ConnectPage() {
+function readAccessKey(): string {
+	const direct =
+		process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY?.trim() ||
+		process.env.WEB3FORMS_ACCESS_KEY?.trim();
+	if (direct) return direct;
+	try {
+		const { env } = getCloudflareContext();
+		const e = env as unknown as Record<string, string | undefined>;
+		return (
+			e.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY?.trim() ??
+			e.WEB3FORMS_ACCESS_KEY?.trim() ??
+			""
+		);
+	} catch {
+		return "";
+	}
+}
+
+export default async function ConnectPage() {
+	const accessKey = readAccessKey();
 	return (
 		<div className="flex min-h-dvh w-full flex-col bg-[#f7f4ef] text-zinc-900">
 			<header className="shrink-0">
@@ -46,7 +68,7 @@ export default function ConnectPage() {
 							information, and we will contact you. We look forward to connecting!
 						</p>
 						<div className="mt-8 sm:mt-10">
-							<ConnectForm />
+							<ConnectForm accessKey={accessKey} />
 						</div>
 					</div>
 					<div className="order-2 flex w-full min-w-0 items-center justify-center md:justify-end">

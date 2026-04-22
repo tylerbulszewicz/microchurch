@@ -2,12 +2,21 @@
 
 import { type FormEvent, useId, useState } from "react";
 
-/** Server handler adds the Web3Forms access key (from Worker `vars`, not the client bundle). */
-const CONTACT_API = "/api/contact";
+const WEB3FORMS_URL = "https://api.web3forms.com/submit";
+const DEFAULT_SUBJECT = "Connect with Us — Microchurch";
 
 type SubmitState = "idle" | "sending" | "success";
 
-export function ConnectForm() {
+type ConnectFormProps = {
+	/**
+	 * Web3Forms access key, passed from the server component so it’s read at request
+	 * time from Cloudflare `vars` / `.env.local`. Web3Forms’ docs use this key directly
+	 * in the browser; it’s public by design.
+	 */
+	accessKey: string;
+};
+
+export function ConnectForm({ accessKey }: ConnectFormProps) {
 	const baseId = useId();
 	const [error, setError] = useState<string | null>(null);
 	const [state, setState] = useState<SubmitState>("idle");
@@ -31,32 +40,49 @@ export function ConnectForm() {
 			setError("Please fill in your name and email.");
 			return;
 		}
+		if (!accessKey) {
+			setError(
+				"Form is not configured yet. The site owner needs to set NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY in the environment and redeploy."
+			);
+			return;
+		}
+
+		const payload = new FormData();
+		payload.append("access_key", accessKey);
+		payload.append("subject", DEFAULT_SUBJECT);
+		payload.append("name", `${first} ${last}`.trim());
+		payload.append("email", email);
+		payload.append("message", message || "(no message provided)");
+		payload.append("firstName", first);
+		payload.append("lastName", last);
 
 		setState("sending");
 		try {
-			const res = await fetch(CONTACT_API, {
-				method: "POST",
-				headers: { "Content-Type": "application/json", Accept: "application/json" },
-				body: JSON.stringify({
-					firstName: first,
-					lastName: last,
-					email,
-					message: message || "",
-					botcheck: String(fd.get("botcheck") ?? "").trim(),
-				}),
-			});
-			const data = (await res.json()) as { success?: boolean; message?: string; error?: string };
+			const res = await fetch(WEB3FORMS_URL, { method: "POST", body: payload });
+			const raw = await res.text();
+			let data: { success?: boolean; message?: string } = {};
+			try {
+				data = raw ? (JSON.parse(raw) as typeof data) : {};
+			} catch {
+				// leave data empty; handled below
+			}
 			if (res.ok && data.success) {
 				setState("success");
 				form.reset();
 			} else {
 				setState("idle");
-				const msg = data.message ?? data.error ?? "Something went wrong. Please try again in a few minutes.";
-				setError(msg);
+				setError(data.message ?? `Submission failed (${res.status}). Please try again in a few minutes.`);
 			}
-		} catch {
+		} catch (err) {
 			setState("idle");
-			setError("Network error. Check your connection and try again.");
+			const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+			const detail =
+				err instanceof Error && err.name === "TypeError" ? " Your browser may have blocked the request." : "";
+			setError(
+				isOffline
+					? "You appear to be offline. Reconnect and try again."
+					: `We couldn't reach the email service.${detail} Please try again.`
+			);
 		}
 	}
 
@@ -86,6 +112,8 @@ export function ConnectForm() {
 
 	return (
 		<form
+			method="post"
+			action={WEB3FORMS_URL}
 			className="relative flex w-full min-w-0 max-w-lg flex-col gap-6"
 			onSubmit={onSubmit}
 			noValidate
