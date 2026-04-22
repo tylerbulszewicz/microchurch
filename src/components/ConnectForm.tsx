@@ -2,15 +2,25 @@
 
 import { type FormEvent, useId, useState } from "react";
 
-const MAIL = "charlottemicrochurch@gmail.com";
+const WEB3FORMS_SUBMIT = "https://api.web3forms.com/submit";
+const DEFAULT_SUBJECT = "Connect with Us — Microchurch";
+
+function getAccessKey(): string | undefined {
+	if (typeof process === "undefined") return undefined;
+	return process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY;
+}
+
+type SubmitState = "idle" | "sending" | "success";
 
 export function ConnectForm() {
 	const baseId = useId();
 	const [error, setError] = useState<string | null>(null);
+	const [state, setState] = useState<SubmitState>("idle");
 
-	function onSubmit(e: FormEvent<HTMLFormElement>) {
+	async function onSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setError(null);
+
 		const form = e.currentTarget;
 		const fd = new FormData(form);
 		const honeypot = String(fd.get("botcheck") ?? "").trim();
@@ -26,19 +36,67 @@ export function ConnectForm() {
 			setError("Please fill in your name and email.");
 			return;
 		}
-		const body = [
-			`Name: ${first} ${last}`,
-			`Email: ${email}`,
-			"",
-			"Message:",
-			message || "(no message provided)",
-		].join("\n");
-		const subject = "Connect with Us — Microchurch";
-		// searchParams so To / Subject / Body are set correctly in Mail, Apple Mail, Outlook, Gmail, etc.
-		const mail = new URL(`mailto:${MAIL}`);
-		mail.searchParams.set("subject", subject);
-		mail.searchParams.set("body", body);
-		window.location.assign(mail.toString());
+
+		const accessKey = getAccessKey();
+		if (!accessKey) {
+			setError(
+				"Form is not configured yet. Set NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY in the environment and redeploy."
+			);
+			return;
+		}
+
+		setState("sending");
+		try {
+			const res = await fetch(WEB3FORMS_SUBMIT, {
+				method: "POST",
+				headers: { "Content-Type": "application/json", Accept: "application/json" },
+				body: JSON.stringify({
+					access_key: accessKey,
+					subject: DEFAULT_SUBJECT,
+					name: `${first} ${last}`.trim(),
+					email,
+					message: message || "(no message provided)",
+					firstName: first,
+					lastName: last,
+				}),
+			});
+			const data = (await res.json()) as { success?: boolean; message?: string; error?: string };
+			if (res.ok && data.success) {
+				setState("success");
+				form.reset();
+			} else {
+				setState("idle");
+				const msg = data.message ?? data.error ?? "Something went wrong. Please try again in a few minutes.";
+				setError(msg);
+			}
+		} catch {
+			setState("idle");
+			setError("Network error. Check your connection and try again.");
+		}
+	}
+
+	if (state === "success") {
+		return (
+			<div
+				className="font-inter-tight w-full min-w-0 max-w-lg rounded-md border border-zinc-300 bg-zinc-50 px-4 py-6 sm:px-6"
+				role="status"
+			>
+				<p className="m-0 text-base font-medium text-zinc-900 sm:text-lg">Thanks — we received your message.</p>
+				<p className="mt-2 m-0 text-sm leading-relaxed text-zinc-600">
+					We&rsquo;ll be in touch at the email you provided.
+				</p>
+				<button
+					type="button"
+					className="font-inter-tight mt-5 min-h-10 text-sm font-medium text-zinc-800 underline decoration-zinc-400 underline-offset-4 transition-colors hover:text-zinc-600"
+					onClick={() => {
+						setState("idle");
+						setError(null);
+					}}
+				>
+					Send another message
+				</button>
+			</div>
+		);
 	}
 
 	return (
@@ -79,7 +137,8 @@ export function ConnectForm() {
 						type="text"
 						autoComplete="given-name"
 						required
-						className="font-inter-tight w-full min-h-10 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition-[border-color] placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/50"
+						disabled={state === "sending"}
+						className="font-inter-tight w-full min-h-10 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition-[border-color] placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/50 disabled:cursor-not-allowed disabled:opacity-60"
 					/>
 				</div>
 				<div className="flex flex-col gap-1.5">
@@ -95,7 +154,8 @@ export function ConnectForm() {
 						type="text"
 						autoComplete="family-name"
 						required
-						className="font-inter-tight w-full min-h-10 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition-[border-color] placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/50"
+						disabled={state === "sending"}
+						className="font-inter-tight w-full min-h-10 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition-[border-color] placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/50 disabled:cursor-not-allowed disabled:opacity-60"
 					/>
 				</div>
 			</div>
@@ -113,7 +173,8 @@ export function ConnectForm() {
 					autoComplete="email"
 					inputMode="email"
 					required
-					className="font-inter-tight w-full min-h-10 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition-[border-color] placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/50"
+					disabled={state === "sending"}
+					className="font-inter-tight w-full min-h-10 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition-[border-color] placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/50 disabled:cursor-not-allowed disabled:opacity-60"
 				/>
 			</div>
 			<div className="flex flex-col gap-1.5">
@@ -124,18 +185,21 @@ export function ConnectForm() {
 					id={`${baseId}-msg`}
 					name="message"
 					rows={5}
-					className="font-inter-tight w-full min-h-28 resize-y rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition-[border-color] placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/50"
+					disabled={state === "sending"}
+					className="font-inter-tight w-full min-h-28 resize-y rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition-[border-color] placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/50 disabled:cursor-not-allowed disabled:opacity-60"
 				/>
 			</div>
 			<div className="flex flex-col items-start gap-2">
 				<button
 					type="submit"
-					className="font-marcellus inline-flex min-h-11 min-w-0 items-center justify-center rounded-full border border-transparent bg-zinc-900 px-8 py-3 text-sm font-medium text-white transition-[background-color,transform] hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 sm:text-base"
+					disabled={state === "sending"}
+					className="font-marcellus inline-flex min-h-11 min-w-0 items-center justify-center rounded-full border border-transparent bg-zinc-900 px-8 py-3 text-sm font-medium text-white transition-[background-color,transform] enabled:hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-500 enabled:active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 sm:text-base"
 				>
-					SEND
+					{state === "sending" ? "Sending…" : "SEND"}
 				</button>
 				<p className="m-0 max-w-md font-inter-tight text-sm leading-relaxed text-zinc-500">
-					Opens your email with everything filled in. Then press send in your email app to deliver.
+					Submits through Web3Forms so we can reply by email. We don&rsquo;t add you to a list from this
+					form.
 				</p>
 			</div>
 		</form>
