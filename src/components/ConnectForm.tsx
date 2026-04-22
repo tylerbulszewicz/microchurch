@@ -2,13 +2,8 @@
 
 import { type FormEvent, useId, useState } from "react";
 
-const WEB3FORMS_SUBMIT = "https://api.web3forms.com/submit";
-const DEFAULT_SUBJECT = "Connect with Us — Microchurch";
-
-function getAccessKey(): string | undefined {
-	if (typeof process === "undefined") return undefined;
-	return process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY;
-}
+/** Server handler adds the Web3Forms access key (from Worker `vars`, not the client bundle). */
+const CONTACT_API = "/api/contact";
 
 type SubmitState = "idle" | "sending" | "success";
 
@@ -37,27 +32,17 @@ export function ConnectForm() {
 			return;
 		}
 
-		const accessKey = getAccessKey();
-		if (!accessKey) {
-			setError(
-				"Form is not configured yet. Set NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY in the environment and redeploy."
-			);
-			return;
-		}
-
 		setState("sending");
 		try {
-			const res = await fetch(WEB3FORMS_SUBMIT, {
+			const res = await fetch(CONTACT_API, {
 				method: "POST",
 				headers: { "Content-Type": "application/json", Accept: "application/json" },
 				body: JSON.stringify({
-					access_key: accessKey,
-					subject: DEFAULT_SUBJECT,
-					name: `${first} ${last}`.trim(),
-					email,
-					message: message || "(no message provided)",
 					firstName: first,
 					lastName: last,
+					email,
+					message: message || "",
+					botcheck: String(fd.get("botcheck") ?? "").trim(),
 				}),
 			});
 			const data = (await res.json()) as { success?: boolean; message?: string; error?: string };

@@ -35,7 +35,11 @@
 	"observability": {
 		"enabled": true
 	},
-	"upload_source_maps": true
+	"upload_source_maps": true,
+	// Public (safe in client). Must match the Worker env in the dashboard so deploys don’t override it.
+	"vars": {
+		"NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY": "09c7208b-8854-4a4c-8e49-9db6c929cd5d"
+	}
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
