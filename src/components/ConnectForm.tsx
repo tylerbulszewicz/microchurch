@@ -1,9 +1,11 @@
 "use client";
 
-import { type FormEvent, useId, useState } from "react";
+import { type FormEvent, useEffect, useId, useState } from "react";
 
 const WEB3FORMS_URL = "https://api.web3forms.com/submit";
 const DEFAULT_SUBJECT = "Connect with Us — Microchurch";
+/** One submission per browser; cleared if the user clears site data. */
+const STORAGE_KEY = "microchurch.connect.submitted";
 
 type SubmitState = "idle" | "sending" | "success";
 
@@ -20,6 +22,27 @@ export function ConnectForm({ accessKey }: ConnectFormProps) {
 	const baseId = useId();
 	const [error, setError] = useState<string | null>(null);
 	const [state, setState] = useState<SubmitState>("idle");
+	const [storageReady, setStorageReady] = useState(false);
+	const [alreadySentFromStorage, setAlreadySentFromStorage] = useState(false);
+
+	useEffect(() => {
+		try {
+			if (localStorage.getItem(STORAGE_KEY) === "1") {
+				setAlreadySentFromStorage(true);
+			}
+		} catch {
+			// private mode or storage disabled — allow form, cannot persist
+		}
+		setStorageReady(true);
+	}, []);
+
+	function persistOneSubmission() {
+		try {
+			localStorage.setItem(STORAGE_KEY, "1");
+		} catch {
+			// still show success; user could resubmit in another tab
+		}
+	}
 
 	async function onSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
@@ -30,6 +53,10 @@ export function ConnectForm({ accessKey }: ConnectFormProps) {
 		const honeypot = String(fd.get("botcheck") ?? "").trim();
 		if (honeypot.length > 0) {
 			setError("Unable to send your message. Please try again.");
+			return;
+		}
+		if (alreadySentFromStorage) {
+			setError("You have already sent a message from this browser.");
 			return;
 		}
 		const first = String(fd.get("firstName") ?? "").trim();
@@ -67,6 +94,8 @@ export function ConnectForm({ accessKey }: ConnectFormProps) {
 				// leave data empty; handled below
 			}
 			if (res.ok && data.success) {
+				persistOneSubmission();
+				setAlreadySentFromStorage(true);
 				setState("success");
 				form.reset();
 			} else {
@@ -86,26 +115,44 @@ export function ConnectForm({ accessKey }: ConnectFormProps) {
 		}
 	}
 
-	if (state === "success") {
+	const showThankYou = state === "success" || alreadySentFromStorage;
+	const thankYouIsFresh = state === "success";
+
+	if (!storageReady) {
+		return (
+			<p className="m-0 font-inter-tight text-sm text-zinc-500" aria-live="polite">
+				Loading form…
+			</p>
+		);
+	}
+
+	if (showThankYou) {
 		return (
 			<div
 				className="font-inter-tight w-full min-w-0 max-w-lg rounded-md border border-zinc-300 bg-zinc-50 px-4 py-6 sm:px-6"
 				role="status"
 			>
-				<p className="m-0 text-base font-medium text-zinc-900 sm:text-lg">Thanks — we received your message.</p>
-				<p className="mt-2 m-0 text-sm leading-relaxed text-zinc-600">
-					We&rsquo;ll be in touch at the email you provided.
+				<p className="m-0 text-base font-medium text-zinc-900 sm:text-lg">
+					{thankYouIsFresh
+						? "Thanks — we received your message."
+						: "We already have your message from this browser."}
 				</p>
-				<button
-					type="button"
-					className="font-inter-tight mt-5 min-h-10 text-sm font-medium text-zinc-800 underline decoration-zinc-400 underline-offset-4 transition-colors hover:text-zinc-600"
-					onClick={() => {
-						setState("idle");
-						setError(null);
-					}}
-				>
-					Send another message
-				</button>
+				<p className="mt-2 m-0 text-sm leading-relaxed text-zinc-600">
+					{thankYouIsFresh ? (
+						"We&rsquo;ll be in touch at the email you provided."
+					) : (
+						<>
+							Only one message is allowed per device to reduce spam. If you need to reach us again, email{" "}
+							<a
+								href="mailto:charlottemicrochurch@gmail.com"
+								className="font-medium text-zinc-800 underline decoration-zinc-400 underline-offset-2 transition-colors hover:text-zinc-600"
+							>
+								charlottemicrochurch@gmail.com
+							</a>
+							.
+						</>
+					)}
+				</p>
 			</div>
 		);
 	}
