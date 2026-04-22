@@ -62,9 +62,10 @@ export function ConnectForm({ accessKey }: ConnectFormProps) {
 		const first = String(fd.get("firstName") ?? "").trim();
 		const last = String(fd.get("lastName") ?? "").trim();
 		const email = String(fd.get("email") ?? "").trim();
+		const phone = String(fd.get("phone") ?? "").trim();
 		const message = String(fd.get("message") ?? "").trim();
-		if (!first || !last || !email) {
-			setError("Please fill in your name and email.");
+		if (!first || !last || !email || !phone) {
+			setError("Please fill in your name, email, and phone number.");
 			return;
 		}
 		if (!accessKey) {
@@ -80,6 +81,7 @@ export function ConnectForm({ accessKey }: ConnectFormProps) {
 		payload.append("name", `${first} ${last}`.trim());
 		payload.append("email", email);
 		payload.append("message", message || "(no message provided)");
+		payload.append("phone", phone);
 		payload.append("firstName", first);
 		payload.append("lastName", last);
 
@@ -139,7 +141,7 @@ export function ConnectForm({ accessKey }: ConnectFormProps) {
 				</p>
 				<p className="mt-2 m-0 text-sm leading-relaxed text-zinc-600">
 					{thankYouIsFresh ? (
-						"We&rsquo;ll be in touch at the email you provided."
+						"We\u2019ll be in touch using the contact details you provided."
 					) : (
 						<>
 							Only one message is allowed per device to reduce spam. If you need to reach us again, email{" "}
@@ -238,6 +240,25 @@ export function ConnectForm({ accessKey }: ConnectFormProps) {
 				/>
 			</div>
 			<div className="flex flex-col gap-1.5">
+				<label
+					className="font-inter-tight text-sm font-medium text-zinc-800"
+					htmlFor={`${baseId}-phone`}
+				>
+					Phone <span className="text-zinc-500">(required)</span>
+				</label>
+				<input
+					id={`${baseId}-phone`}
+					name="phone"
+					type="tel"
+					autoComplete="tel"
+					inputMode="tel"
+					placeholder="(555) 555-0100"
+					required
+					disabled={state === "sending"}
+					className="font-inter-tight w-full min-h-10 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition-[border-color] placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400/50 disabled:cursor-not-allowed disabled:opacity-60"
+				/>
+			</div>
+			<div className="flex flex-col gap-1.5">
 				<label className="font-inter-tight text-sm font-medium text-zinc-800" htmlFor={`${baseId}-msg`}>
 					Message
 				</label>
@@ -258,7 +279,7 @@ export function ConnectForm({ accessKey }: ConnectFormProps) {
 					{state === "sending" ? "Sending…" : "SEND"}
 				</button>
 				<p className="m-0 max-w-md font-inter-tight text-sm leading-relaxed text-zinc-500">
-					Submits through Web3Forms so we can reply by email. We don&rsquo;t add you to a list from this
+					Submits through Web3Forms so we can reply by email. We don\u2019t add you to a list from this
 					form.
 				</p>
 			</div>
