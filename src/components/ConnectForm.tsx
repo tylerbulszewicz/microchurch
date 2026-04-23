@@ -278,10 +278,6 @@ export function ConnectForm({ accessKey }: ConnectFormProps) {
 				>
 					{state === "sending" ? "Sending…" : "SEND"}
 				</button>
-				<p className="m-0 max-w-md font-inter-tight text-sm leading-relaxed text-zinc-500">
-					Submits through Web3Forms so we can reply by email. We don\u2019t add you to a list from this
-					form.
-				</p>
 			</div>
 		</form>
 	);
